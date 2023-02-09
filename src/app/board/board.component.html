@@ -1,0 +1,50 @@
+<!-- <div appHighlight>Testing</div> -->
+<div class="board container p-0 border border-dark">
+    <div
+        class="d-flex justify-content-center"
+        style="
+            width: 100%;
+            height: 12.5%;"
+        *ngFor="let row of rows">
+        <div
+            class="container p-2 d-flex justify-content-center align-items-center"
+            *ngFor="let col of cols"
+            [ngStyle]="{
+                backgroundColor: (col + row) % 2 === 0 ? '#E0E0E0' : '#005100'
+            }"
+            style="
+                width: 12.5%;
+                height: 100%;
+                color: white;">
+            <ng-container *ngIf="board[(row - 1) * 8 + col]">
+                <div class="piece container d-flex justify-content-center align-items-center">
+                    <app-piece
+                        [color]="board[(row - 1) * 8 + col].color"
+                        [name]="board[(row - 1) * 8 + col].name">
+                    </app-piece>
+                </div>
+            </ng-container>
+            <!-- <div
+                *ngIf="board[(row - 1) * 8 + col] && board[(row - 1) * 8 + col].white"
+                class="container d-flex justify-content-center align-items-center"
+                
+                style="
+                    background-color: white;
+                    color: black;
+                    width: 90%;
+                    height: 90%">
+                {{board[(row - 1) * 8 + col].name}}
+            </div>
+            <div
+                *ngIf="board[(row - 1) * 8 + col] && !board[(row - 1) * 8 + col].white"
+                class="container d-flex justify-content-center align-items-center"
+                style="
+                    background-color: black;
+                    color: white;
+                    width: 90%;
+                    height: 90%">
+                {{board[(row - 1) * 8 + col].name}}
+            </div> -->
+        </div>
+    </div>
+</div>

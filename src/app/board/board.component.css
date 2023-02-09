@@ -1,0 +1,10 @@
+.board {
+    width: 550px;
+    height: 550px;
+}
+
+.piece {
+    width: 100%;
+    height: 100%;
+    /* background-color: blue; */
+}
