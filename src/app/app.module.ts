@@ -7,6 +7,7 @@ import { BoardComponent } from './board/board.component';
 import { SetPieceDirective } from './custom directives/setpiece.directive';
 import { HighlightDirective } from './custom directives/highlight.directive';
 import { PieceComponent } from './piece/piece.component';
+import { MoveComponent } from './move/move.component';
 
 @NgModule({
   declarations: [
@@ -14,7 +15,8 @@ import { PieceComponent } from './piece/piece.component';
     BoardComponent,
     SetPieceDirective,
     HighlightDirective,
-    PieceComponent
+    PieceComponent,
+    MoveComponent
   ],
   imports: [
     BrowserModule,

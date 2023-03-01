@@ -9,42 +9,27 @@
         <div
             class="container p-2 d-flex justify-content-center align-items-center"
             *ngFor="let col of cols"
+            (click)="squareClicked((row - 1) * 8 + col)"
             [ngStyle]="{
-                backgroundColor: (col + row) % 2 === 0 ? '#E0E0E0' : '#005100'
+                backgroundColor: selectedPiece === (row - 1) * 8 + col ? '#FFA500' :
+                ((col + row) % 2 === 0 ? '#E0E0E0' : '#005100')
             }"
             style="
                 width: 12.5%;
                 height: 100%;
                 color: white;">
-            <ng-container *ngIf="board[(row - 1) * 8 + col]">
-                <div class="piece container d-flex justify-content-center align-items-center">
-                    <app-piece
-                        [color]="board[(row - 1) * 8 + col].color"
-                        [name]="board[(row - 1) * 8 + col].name">
-                    </app-piece>
-                </div>
+            <!-- <ng-container *ngIf="highlightedCells.has((row - 1) * 8 + col)">
+                <app-move
+                    [coordinates]="[row, col]"
+                    (moveClicked)="onMoveClicked($event)">
+                </app-move>
+            </ng-container> -->
+            <ng-container *ngIf="pieces[(row - 1) * 8 + col]">
+                <app-piece
+                    [color]="pieces[(row - 1) * 8 + col].color"
+                    [name]="pieces[(row - 1) * 8 + col].name">
+                </app-piece>
             </ng-container>
-            <!-- <div
-                *ngIf="board[(row - 1) * 8 + col] && board[(row - 1) * 8 + col].white"
-                class="container d-flex justify-content-center align-items-center"
-                
-                style="
-                    background-color: white;
-                    color: black;
-                    width: 90%;
-                    height: 90%">
-                {{board[(row - 1) * 8 + col].name}}
-            </div>
-            <div
-                *ngIf="board[(row - 1) * 8 + col] && !board[(row - 1) * 8 + col].white"
-                class="container d-flex justify-content-center align-items-center"
-                style="
-                    background-color: black;
-                    color: white;
-                    width: 90%;
-                    height: 90%">
-                {{board[(row - 1) * 8 + col].name}}
-            </div> -->
         </div>
     </div>
 </div>

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 @Component({
   selector: 'app-piece',
@@ -8,4 +8,9 @@ import { Component, Input } from '@angular/core';
 export class PieceComponent {
   @Input() name: string = "";
   @Input() color: string = "";
+
+
+
+
+
 }
