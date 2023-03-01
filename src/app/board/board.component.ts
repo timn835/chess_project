@@ -17,8 +17,10 @@ export class BoardComponent {
   cols: number[] = [1, 2, 3, 4, 5, 6, 7, 8];
   colsAsString: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
   pieces: {[key: number]: Piece} = {};
+  turnToMove: string = "white";
   selectedPiece: number = 0;
   highlightedCells: any = new Set();
+  enPassant: number = 0;
 
   // onPieceClicked(data:number[]) {
     // if(this.selectedPiece) {
@@ -33,13 +35,12 @@ export class BoardComponent {
   selectPiece(pieceNumber: number) {
     this.selectedPiece = pieceNumber;
     this.highlightedCells.clear();
-    this.highlightedCells.add(pieceNumber + 8);
     this.addPotentialMoves(pieceNumber)
   }
 
   addPotentialMoves(pieceNumber: number) {
     if(this.pieces[pieceNumber].name === "pawn") {
-      this.addPawnMoves(pieceNumber);
+      this.addPawnMoves(pieceNumber, this.pieces[pieceNumber].color === "white" ? 1 : -1);
     } else if (this.pieces[pieceNumber].name === "rook") {
       this.addRookMoves(pieceNumber);
     } else if (this.pieces[pieceNumber].name === "knight") {
@@ -55,34 +56,69 @@ export class BoardComponent {
 
   squareClicked(squareNumber: number) {
     if(this.highlightedCells.has(squareNumber)) {
+      if(
+        this.pieces[this.selectedPiece].name === "pawn" //we want to move a pawn
+        && Math.abs(squareNumber - this.selectedPiece) % 8 //we want to move diagonally
+        && !this.pieces[squareNumber] //there is no piece to capture on a diagonal square
+      ) {
+        delete this.pieces[this.enPassant]
+      }
       this.pieces[squareNumber] = this.pieces[this.selectedPiece];
+      if(this.pieces[squareNumber].name === "pawn" && Math.abs(squareNumber - this.selectedPiece) === 16) {
+        this.enPassant = squareNumber;
+      } else {
+        this.enPassant = 0;
+      }
       delete this.pieces[this.selectedPiece];
       this.clearSelection();
+      this.turnToMove = this.turnToMove === "white" ? "black" : "white";
     }
-    else if(this.pieces[squareNumber]) {
+    else if(this.pieces[squareNumber] && this.turnToMove === this.pieces[squareNumber].color) {
       this.selectPiece(squareNumber);
     }
     else {
       this.clearSelection();
     }
   }
+
   clearSelection() {
     this.selectedPiece = 0
     this.highlightedCells.clear();
   }
-  addPawnMoves(pieceNumber: number) {
-    if(this.pieces[pieceNumber].color === "white") {
-      this.highlightedCells.add(pieceNumber + 8);
-      if(pieceNumber < 17) {
-        this.highlightedCells.add(pieceNumber + 16)
-      }
-    } else {
-      this.highlightedCells.add(pieceNumber - 8);
-      if(pieceNumber > 48) {
-        this.highlightedCells.add(pieceNumber - 16)
+
+  addPawnMoves(pieceNumber: number, dirMult: number) {
+    //we add the potential move
+    if(!this.pieces[dirMult * 8 + pieceNumber]) {
+      this.highlightedCells.add(dirMult * 8 + pieceNumber)
+      //we add the possibility of jumping 2 squares on the first move
+      if(this.onFirstRank(pieceNumber, dirMult) && !this.pieces[dirMult * 16 + pieceNumber]) {
+        this.highlightedCells.add(dirMult * 16 + pieceNumber)
       }
     }
+    //we add the potential captures
+
+    if(this.pawnCanCapture(pieceNumber, dirMult, 7)) {
+      this.highlightedCells.add(dirMult * 7 + pieceNumber);
+    }
+
+    if(this.pawnCanCapture(pieceNumber, dirMult, 9)) {
+      this.highlightedCells.add(dirMult * 9 + pieceNumber);
+    }
   }
+  pawnCanCapture(pieceNumber: number, dirMult: number, increment: number) {
+    return (
+      Math.abs(pieceNumber - this.enPassant) === 1 ||
+      (this.pieces[dirMult * increment + pieceNumber]
+      && this.pieces[dirMult * increment + pieceNumber].color !== this.pieces[pieceNumber].color)
+    );
+  }
+
+  onFirstRank(pieceNumber: number, dirMult: number) {
+    return (dirMult > 0 && pieceNumber < 17) || (dirMult < 0 && pieceNumber > 48);
+  }
+
+
+
   addRookMoves(pieceNumber: number) {
 
   }

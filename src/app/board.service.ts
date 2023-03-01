@@ -33,6 +33,10 @@ export class BoardService {
         color: "white",
         name: "pawn"
       },
+      10:{
+        color: "white",
+        name: "pawn"
+      },
       57:{
         color: "black",
         name: "rook"
