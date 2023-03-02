@@ -8,6 +8,7 @@ import { SetPieceDirective } from './custom directives/setpiece.directive';
 import { HighlightDirective } from './custom directives/highlight.directive';
 import { PieceComponent } from './piece/piece.component';
 import { MoveComponent } from './move/move.component';
+import { QueeningBoxComponent } from './queening-box/queening-box.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +17,8 @@ import { MoveComponent } from './move/move.component';
     SetPieceDirective,
     HighlightDirective,
     PieceComponent,
-    MoveComponent
+    MoveComponent,
+    QueeningBoxComponent
   ],
   imports: [
     BrowserModule,

@@ -9,8 +9,4 @@ export class PieceComponent {
   @Input() name: string = "";
   @Input() color: string = "";
 
-
-
-
-
 }

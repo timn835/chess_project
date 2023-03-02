@@ -1,5 +1,11 @@
-<!-- <div appHighlight>Testing</div> -->
 <div class="board container p-0 border border-dark">
+    <div class="queening-box" *ngIf="queenBoxActivated">
+        <app-queening-box
+            [queenColumn]="queenColumn"
+            [queenRows]="queenRows"
+            (promotionSelection)="onPromotionSelection($event)">
+        </app-queening-box>
+    </div>
     <div
         class="d-flex justify-content-center"
         style="
@@ -17,13 +23,8 @@
             style="
                 width: 12.5%;
                 height: 100%;
+
                 color: white;">
-            <!-- <ng-container *ngIf="highlightedCells.has((row - 1) * 8 + col)">
-                <app-move
-                    [coordinates]="[row, col]"
-                    (moveClicked)="onMoveClicked($event)">
-                </app-move>
-            </ng-container> -->
             <ng-container *ngIf="pieces[(row - 1) * 8 + col]">
                 <app-piece
                     [color]="pieces[(row - 1) * 8 + col].color"

@@ -13,24 +13,20 @@ export class BoardComponent {
   ngOnInit(): void {
     this.pieces = this.boardService.getPosition();
   }
+
   rows: number[] = [8, 7, 6, 5, 4, 3, 2, 1];
   cols: number[] = [1, 2, 3, 4, 5, 6, 7, 8];
   colsAsString: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
   pieces: {[key: number]: Piece} = {};
   turnToMove: string = "white";
   selectedPiece: number = 0;
-  highlightedCells: any = new Set();
+  highlightedCells: Set<number> = new Set();
   enPassant: number = 0;
-
-  // onPieceClicked(data:number[]) {
-    // if(this.selectedPiece) {
-    //   this.move(this.selectedPiece, (data[0] - 1) * 8 + data[1])
-    // } else {
-    //   console.log("else statement")
-    //   this.selectPiece((data[0] - 1) * 8 + data[1])
-    // }
-    // delete this.board[(data[0] - 1) * 8 + data[1]]
-  // }
+  queenBoxActivated: boolean = false;
+  queenRows!: Set<number>;
+  queenRowsWhite: Set<number> = new Set([5, 6, 7, 8]);
+  queenRowsBlack: Set<number> = new Set([1, 2, 3, 4]);
+  queenColumn: number = 0;
 
   selectPiece(pieceNumber: number) {
     this.selectedPiece = pieceNumber;
@@ -40,17 +36,17 @@ export class BoardComponent {
 
   addPotentialMoves(pieceNumber: number) {
     if(this.pieces[pieceNumber].name === "pawn") {
-      this.addPawnMoves(pieceNumber, this.pieces[pieceNumber].color === "white" ? 1 : -1);
+      this.boardService.addPawnMoves(this.pieces, this.highlightedCells, this.enPassant, pieceNumber, this.pieces[pieceNumber].color === "white" ? 1 : -1);
     } else if (this.pieces[pieceNumber].name === "rook") {
-      this.addRookMoves(pieceNumber);
+      this.boardService.addRookMoves(pieceNumber);
     } else if (this.pieces[pieceNumber].name === "knight") {
-      this.addKnightMoves(pieceNumber);
+      this.boardService.addKnightMoves(pieceNumber);
     } else if (this.pieces[pieceNumber].name === "bishop") {
-      this.addBishopMoves(pieceNumber);
+      this.boardService.addBishopMoves(pieceNumber);
     } else if (this.pieces[pieceNumber].name === "queen") {
-      this.addQueenMoves(pieceNumber);
+      this.boardService.addQueenMoves(pieceNumber);
     } else {
-      this.addKingMoves(pieceNumber);
+      this.boardService.addKingMoves(pieceNumber);
     }
   }
 
@@ -71,6 +67,12 @@ export class BoardComponent {
       }
       delete this.pieces[this.selectedPiece];
       this.clearSelection();
+      if(this.pieces[squareNumber].name === "pawn" && (squareNumber > 56 || squareNumber < 9)) {
+        this.queenRows = this.pieces[squareNumber].color === "white" ?
+          this.queenRowsWhite : this.queenRowsBlack;
+        this.queenColumn = (squareNumber - 1) % 8 + 1;
+        this.queenBoxActivated = true;
+      }
       this.turnToMove = this.turnToMove === "white" ? "black" : "white";
     }
     else if(this.pieces[squareNumber] && this.turnToMove === this.pieces[squareNumber].color) {
@@ -86,52 +88,12 @@ export class BoardComponent {
     this.highlightedCells.clear();
   }
 
-  addPawnMoves(pieceNumber: number, dirMult: number) {
-    //we add the potential move
-    if(!this.pieces[dirMult * 8 + pieceNumber]) {
-      this.highlightedCells.add(dirMult * 8 + pieceNumber)
-      //we add the possibility of jumping 2 squares on the first move
-      if(this.onFirstRank(pieceNumber, dirMult) && !this.pieces[dirMult * 16 + pieceNumber]) {
-        this.highlightedCells.add(dirMult * 16 + pieceNumber)
-      }
+  onPromotionSelection(piece:Piece) {
+    if(piece.color === "white") {
+      this.pieces[56 + this.queenColumn] = piece;
+    } else {
+      this.pieces[this.queenColumn] = piece;
     }
-    //we add the potential captures
-
-    if(this.pawnCanCapture(pieceNumber, dirMult, 7)) {
-      this.highlightedCells.add(dirMult * 7 + pieceNumber);
-    }
-
-    if(this.pawnCanCapture(pieceNumber, dirMult, 9)) {
-      this.highlightedCells.add(dirMult * 9 + pieceNumber);
-    }
-  }
-  pawnCanCapture(pieceNumber: number, dirMult: number, increment: number) {
-    return (
-      Math.abs(pieceNumber - this.enPassant) === 1 ||
-      (this.pieces[dirMult * increment + pieceNumber]
-      && this.pieces[dirMult * increment + pieceNumber].color !== this.pieces[pieceNumber].color)
-    );
-  }
-
-  onFirstRank(pieceNumber: number, dirMult: number) {
-    return (dirMult > 0 && pieceNumber < 17) || (dirMult < 0 && pieceNumber > 48);
-  }
-
-
-
-  addRookMoves(pieceNumber: number) {
-
-  }
-  addKnightMoves(pieceNumber: number) {
-
-  }
-  addBishopMoves(pieceNumber: number) {
-
-  }
-  addQueenMoves(pieceNumber: number) {
-
-  }
-  addKingMoves(pieceNumber: number) {
-
+    this.queenBoxActivated = false;
   }
 }
