@@ -38,15 +38,15 @@ export class BoardComponent {
     if(this.pieces[pieceNumber].name === "pawn") {
       this.boardService.addPawnMoves(this.pieces, this.highlightedCells, this.enPassant, pieceNumber, this.pieces[pieceNumber].color === "white" ? 1 : -1);
     } else if (this.pieces[pieceNumber].name === "rook") {
-      this.boardService.addRookMoves(pieceNumber);
+      this.boardService.addRookMoves(this.pieces, this.highlightedCells, pieceNumber);
     } else if (this.pieces[pieceNumber].name === "knight") {
-      this.boardService.addKnightMoves(pieceNumber);
+      this.boardService.addKnightMoves(this.pieces, this.highlightedCells, pieceNumber);
     } else if (this.pieces[pieceNumber].name === "bishop") {
-      this.boardService.addBishopMoves(pieceNumber);
+      this.boardService.addBishopMoves(this.pieces, this.highlightedCells, pieceNumber);
     } else if (this.pieces[pieceNumber].name === "queen") {
-      this.boardService.addQueenMoves(pieceNumber);
+      this.boardService.addQueenMoves(this.pieces, this.highlightedCells, pieceNumber);
     } else {
-      this.boardService.addKingMoves(pieceNumber);
+      this.boardService.addKingMoves(this.pieces, this.highlightedCells, pieceNumber);
     }
   }
 
