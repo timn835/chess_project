@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Board } from 'src/types/Board';
 import { Piece } from 'src/types/Piece';
 
 @Injectable({
@@ -14,7 +15,7 @@ export class BoardService {
   diagSteps: number[][] = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
   knightSteps: number[][] = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
 
-  getPosition() {
+  getPieces() {
     return {
       1:{
         color: "white",
@@ -71,23 +72,23 @@ export class BoardService {
     };
   }
 
-  addPawnMoves(pieces: {[key: number]: Piece}, highlightedCells: Set<number>, enPassant: number, pieceNumber: number, dirMult: number) {
+  addPawnMoves(board: Board, pieceNumber: number, dirMult: number) {
     //we add the potential move
-    if(!pieces[dirMult * 8 + pieceNumber]) {
-      highlightedCells.add(dirMult * 8 + pieceNumber)
+    if(!board.pieces[dirMult * 8 + pieceNumber]) {
+      board.highlightedCells.add(dirMult * 8 + pieceNumber)
       //we add the possibility of jumping 2 squares on the first move
-      if(this.onFirstRank(pieceNumber, dirMult) && !pieces[dirMult * 16 + pieceNumber]) {
-        highlightedCells.add(dirMult * 16 + pieceNumber)
+      if(this.onFirstRank(pieceNumber, dirMult) && !board.pieces[dirMult * 16 + pieceNumber]) {
+        board.highlightedCells.add(dirMult * 16 + pieceNumber)
       }
     }
     //we add the potential captures
 
-    if(this.pawnCanCapture(pieces, enPassant, pieceNumber, dirMult, 7)) {
-      highlightedCells.add(dirMult * 7 + pieceNumber);
+    if(this.pawnCanCapture(board.pieces, board.enPassant, pieceNumber, dirMult, 7)) {
+      board.highlightedCells.add(dirMult * 7 + pieceNumber);
     }
 
-    if(this.pawnCanCapture(pieces, enPassant, pieceNumber, dirMult, 9)) {
-      highlightedCells.add(dirMult * 9 + pieceNumber);
+    if(this.pawnCanCapture(board.pieces, board.enPassant, pieceNumber, dirMult, 9)) {
+      board.highlightedCells.add(dirMult * 9 + pieceNumber);
     }
   }
   pawnCanCapture(pieces: {[key: number]: Piece}, enPassant: number, pieceNumber: number, dirMult: number, increment: number) {
@@ -102,15 +103,15 @@ export class BoardService {
     return (dirMult > 0 && pieceNumber < 17) || (dirMult < 0 && pieceNumber > 48);
   }
 
-  addRookMoves(pieces: {[key: number]: Piece}, highlightedCells: Set<number>, pieceNumber: number) {
+  addRookMoves(board: Board, pieceNumber: number) {
     this.row = Math.floor((pieceNumber - 1) / 8) + 1;
     this.col = (pieceNumber - 1) % 8 + 1;
     this.straightSteps.forEach(step => {
       this.stepLength = 1;
       while(true) {
-        if(this.inRangeAndAvailable(pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], pieces[pieceNumber].color)) {
-          highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
-          if(pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
+          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
+          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
             break;
           }
           this.stepLength++;
@@ -120,24 +121,24 @@ export class BoardService {
       }
     })
   }
-  addKnightMoves(pieces: {[key: number]: Piece}, highlightedCells: Set<number>, pieceNumber: number) {
+  addKnightMoves(board: Board, pieceNumber: number) {
     this.row = Math.floor((pieceNumber - 1) / 8) + 1;
     this.col = (pieceNumber - 1) % 8 + 1;
     this.knightSteps.forEach(step => {
-      if(this.inRangeAndAvailable(pieces, this.row + step[0], this.col + step[1], pieces[pieceNumber].color)) {
-        highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
+      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[pieceNumber].color)) {
+        board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
       }
     })
   }
-  addBishopMoves(pieces: {[key: number]: Piece}, highlightedCells: Set<number>, pieceNumber: number) {
+  addBishopMoves(board: Board, pieceNumber: number) {
     this.row = Math.floor((pieceNumber - 1) / 8) + 1;
     this.col = (pieceNumber - 1) % 8 + 1;
     this.diagSteps.forEach(step => {
       this.stepLength = 1;
       while(true) {
-        if(this.inRangeAndAvailable(pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], pieces[pieceNumber].color)) {
-          highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
-          if(pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
+          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
+          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
             break;
           }
           this.stepLength++;
@@ -147,49 +148,50 @@ export class BoardService {
       }
     })
   }
-  addQueenMoves(pieces: {[key: number]: Piece}, highlightedCells: Set<number>, pieceNumber: number) {
-    this.row = Math.floor((pieceNumber - 1) / 8) + 1;
-    this.col = (pieceNumber - 1) % 8 + 1;
-    this.straightSteps.forEach(step => {
-      this.stepLength = 1;
-      while(true) {
-        if(this.inRangeAndAvailable(pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], pieces[pieceNumber].color)) {
-          highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
-          if(pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
-            break;
-          }
-          this.stepLength++;
-        } else {
-          break;
-        }
-      }
-    })
-    this.diagSteps.forEach(step => {
-      this.stepLength = 1;
-      while(true) {
-        if(this.inRangeAndAvailable(pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], pieces[pieceNumber].color)) {
-          highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
-          if(pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
-            break;
-          }
-          this.stepLength++;
-        } else {
-          break;
-        }
-      }
-    })
-  }
-  addKingMoves(pieces: {[key: number]: Piece}, highlightedCells: Set<number>, pieceNumber: number) {
+  addQueenMoves(board: Board, pieceNumber: number) {
     this.row = Math.floor((pieceNumber - 1) / 8) + 1;
     this.col = (pieceNumber - 1) % 8 + 1;
     this.straightSteps.forEach(step => {
-      if(this.inRangeAndAvailable(pieces, this.row + step[0], this.col + step[1], pieces[pieceNumber].color)) {
-        highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
+      this.stepLength = 1;
+      while(true) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
+          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
+          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
+            break;
+          }
+          this.stepLength++;
+        } else {
+          break;
+        }
       }
     })
     this.diagSteps.forEach(step => {
-      if(this.inRangeAndAvailable(pieces, this.row + step[0], this.col + step[1], pieces[pieceNumber].color)) {
-        highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
+      this.stepLength = 1;
+      while(true) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
+          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
+          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
+            break;
+          }
+          this.stepLength++;
+        } else {
+          break;
+        }
+      }
+    })
+  }
+
+  addKingMoves(board: Board, pieceNumber: number) {
+    this.row = Math.floor((pieceNumber - 1) / 8) + 1;
+    this.col = (pieceNumber - 1) % 8 + 1;
+    this.straightSteps.forEach(step => {
+      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[pieceNumber].color)) {
+        board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
+      }
+    })
+    this.diagSteps.forEach(step => {
+      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[pieceNumber].color)) {
+        board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
       }
     })
   }

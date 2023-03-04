@@ -17,7 +17,7 @@
             *ngFor="let col of cols"
             (click)="squareClicked((row - 1) * 8 + col)"
             [ngStyle]="{
-                backgroundColor: selectedPiece === (row - 1) * 8 + col ? '#FFA500' :
+                backgroundColor: currentBoard.selectedPiece === (row - 1) * 8 + col ? '#FFA500' :
                 ((col + row) % 2 === 0 ? '#E0E0E0' : '#005100')
             }"
             style="
@@ -25,10 +25,10 @@
                 height: 100%;
 
                 color: white;">
-            <ng-container *ngIf="pieces[(row - 1) * 8 + col]">
+            <ng-container *ngIf="currentBoard.pieces[(row - 1) * 8 + col]">
                 <app-piece
-                    [color]="pieces[(row - 1) * 8 + col].color"
-                    [name]="pieces[(row - 1) * 8 + col].name">
+                    [color]="currentBoard.pieces[(row - 1) * 8 + col].color"
+                    [name]="currentBoard.pieces[(row - 1) * 8 + col].name">
                 </app-piece>
             </ng-container>
         </div>
