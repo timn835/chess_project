@@ -14,16 +14,21 @@ export class BoardComponent {
   ngOnInit(): void {
     this.currentBoard.pieces = this.boardService.getPieces();
     this.boardService.syncPieces(this.currentBoard, this.futureBoard);
-    console.log(this.futureBoard.pieces);
-    if(!this.boardService.isBoardValid(this.futureBoard)) {
-      console.log("Board invalid: king can get captured");
-    };
   }
 
   rows: number[] = [8, 7, 6, 5, 4, 3, 2, 1];
   cols: number[] = [1, 2, 3, 4, 5, 6, 7, 8];
   colsAsString: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+  //helper variables
+  helperSet: Set<number> = new Set(); //general helper set
+  wronglyHighlightedCells: Set<number> = new Set(); //helper set for wrongly selected cells
+  pieceNums: string[] = []; //helper array to hold piece positions (as digit strings) that are keys in the pieces object
+  kingCanBeCaptured: boolean = false;
+  //////////
+
   currentBoard: Board = {
+    liveBoard: true,
     pieces: {},
     moveChain: [],
     turnToMove: "white",
@@ -33,6 +38,7 @@ export class BoardComponent {
   };
 
   futureBoard: Board = {
+    liveBoard: false,
     pieces: {},
     moveChain: [],
     turnToMove: "white",
@@ -46,7 +52,6 @@ export class BoardComponent {
   queenRowsWhite: Set<number> = new Set([5, 6, 7, 8]);
   queenRowsBlack: Set<number> = new Set([1, 2, 3, 4]);
   queenColumn: number = 0;
-  //variables for checking logic
 
   selectPiece(board: Board, pieceNumber: number) {
     board.selectedPiece = pieceNumber;
@@ -72,13 +77,49 @@ export class BoardComponent {
 
   squareClicked(squareNumber: number) {
     if(this.currentBoard.highlightedCells.has(squareNumber)) {
+      console.log("moving a piece on live board");
       this.movePiece(this.currentBoard, squareNumber);
+      console.log("moving a piece on future board");
+      this.movePiece(this.futureBoard, squareNumber);
     }
     else if(this.currentBoard.pieces[squareNumber] && this.currentBoard.turnToMove === this.currentBoard.pieces[squareNumber].color) {
+      console.log("selecting a piece on live board");
       this.selectPiece(this.currentBoard, squareNumber);
+      
+      this.currentBoard.highlightedCells.forEach(moveTo => {
+        this.selectPiece(this.futureBoard, squareNumber);
+        this.movePiece(this.futureBoard, moveTo);
+        this.pieceNums = Object.keys(this.futureBoard.pieces);
+        for(let i = 0; i < this.pieceNums.length; i++) {
+          if(this.futureBoard.pieces[parseInt(this.pieceNums[i])].color === this.futureBoard.turnToMove) {
+            this.selectPiece(this.futureBoard, parseInt(this.pieceNums[i]));
+            this.futureBoard.highlightedCells.forEach(cell => {
+              if(this.futureBoard.pieces[cell] && this.futureBoard.pieces[cell].name === "king") {
+                this.kingCanBeCaptured = true;
+              }
+            });
+          }
+          if(this.kingCanBeCaptured) {
+            break;
+          }
+        }
+        if(this.kingCanBeCaptured) {
+          this.wronglyHighlightedCells.add(moveTo);
+          this.kingCanBeCaptured = false;
+        }
+        this.takebackMove(this.futureBoard);
+      });
+      this.wronglyHighlightedCells.forEach(wrongSquare => {
+        this.currentBoard.highlightedCells.delete(wrongSquare);
+      });
+      console.log(this.currentBoard.highlightedCells);
+      this.wronglyHighlightedCells.clear();
+      this.selectPiece(this.futureBoard, squareNumber);
     }
     else {
+      console.log("clearing selection on live board");
       this.clearSelection(this.currentBoard);
+      this.clearSelection(this.futureBoard);
     }
   }
 
@@ -114,14 +155,13 @@ export class BoardComponent {
     }
     delete board.pieces[board.selectedPiece];
     this.clearSelection(board);
-    if(board.pieces[moveTo].name === "pawn" && (moveTo > 56 || moveTo < 9)) {
+    if(board.liveBoard && board.pieces[moveTo].name === "pawn" && (moveTo > 56 || moveTo < 9)) {
       this.queenRows = board.pieces[moveTo].color === "white" ?
         this.queenRowsWhite : this.queenRowsBlack;
       this.queenColumn = (moveTo - 1) % 8 + 1;
       delete board.pieces[moveTo];
       this.queenBoxActivated = true;
     }
-    console.log(board.moveChain[board.moveChain.length - 1]);
     board.turnToMove = board.turnToMove === "white" ? "black" : "white";
     // if(!this.hasLegalMoves()) {
     //   if(this.isInCheck()) {
@@ -145,7 +185,6 @@ export class BoardComponent {
     }
     this.currentBoard.moveChain[this.currentBoard.moveChain.length - 1].queenedPiece = piece;
     this.queenBoxActivated = false;
-    console.log(this.currentBoard.moveChain[this.currentBoard.moveChain.length - 1]);
   }
 
   hasLegalMoves() {

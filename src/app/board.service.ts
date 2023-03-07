@@ -220,8 +220,4 @@ export class BoardService {
   inRange(row: number, col: number) {
     return row < 9 && row > 0 && col < 9 && col > 0;
   }
-
-  isBoardValid(board: Board) {
-    return false;
-  }
 }
