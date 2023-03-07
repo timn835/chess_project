@@ -10,6 +10,7 @@ export class BoardService {
   constructor() { }
   row: number = 0;
   col: number = 0;
+  helperSet: Set<number> = new Set();
   stepLength: number = 0;
   straightSteps: number[][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   diagSteps: number[][] = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
@@ -70,6 +71,21 @@ export class BoardService {
         name: "pawn"
       },
     };
+  }
+
+  syncPieces(currentBoard: Board, futureBoard: Board) {
+    Object.keys(currentBoard.pieces).forEach(key => {
+      futureBoard.pieces[parseInt(key)] = currentBoard.pieces[parseInt(key)];
+    });
+    Object.keys(futureBoard.pieces).forEach(key => {
+      if(!currentBoard.pieces[parseInt(key)]) {
+        this.helperSet.add(parseInt(key));
+      }
+    });
+    this.helperSet.forEach(key => {
+      delete futureBoard.pieces[key];
+    });
+    this.helperSet.clear();
   }
 
   addPawnMoves(board: Board, pieceNumber: number, dirMult: number) {
@@ -203,5 +219,9 @@ export class BoardService {
   }
   inRange(row: number, col: number) {
     return row < 9 && row > 0 && col < 9 && col > 0;
+  }
+
+  isBoardValid(board: Board) {
+    return false;
   }
 }

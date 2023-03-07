@@ -13,6 +13,11 @@ export class BoardComponent {
   }
   ngOnInit(): void {
     this.currentBoard.pieces = this.boardService.getPieces();
+    this.boardService.syncPieces(this.currentBoard, this.futureBoard);
+    console.log(this.futureBoard.pieces);
+    if(!this.boardService.isBoardValid(this.futureBoard)) {
+      console.log("Board invalid: king can get captured");
+    };
   }
 
   rows: number[] = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -20,19 +25,22 @@ export class BoardComponent {
   colsAsString: string[] = ["a", "b", "c", "d", "e", "f", "g", "h"];
   currentBoard: Board = {
     pieces: {},
+    moveChain: [],
     turnToMove: "white",
     selectedPiece: 0,
     enPassant: 0,
     highlightedCells: new Set()
   };
-  futurePieces: {[key: number]: Piece} = {};
 
-  // turnToMove: string = "white";
-  // selectedPiece: number = 0;
-  // highlightedCells: Set<number> = new Set();
-  // futureHighlightedCells: Set<number> = new Set();
-  // enPassant: number = 0;
-  //variables for pawn queening functionality
+  futureBoard: Board = {
+    pieces: {},
+    moveChain: [],
+    turnToMove: "white",
+    selectedPiece: 0,
+    enPassant: 0,
+    highlightedCells: new Set()
+  };
+
   queenBoxActivated: boolean = false;
   queenRows!: Set<number>;
   queenRowsWhite: Set<number> = new Set([5, 6, 7, 8]);
@@ -75,16 +83,32 @@ export class BoardComponent {
   }
 
   movePiece(board: Board, moveTo: number) {
+    board.moveChain.push({
+      movedPiece: board.pieces[board.selectedPiece],
+      queenedPiece: {name: "n", color: "n"},
+      oldPieceNumber: board.selectedPiece,
+      newPieceNumber: moveTo,
+      capturedPiece: {name: "n", color: "n"},
+      capturedPieceNumber: 0,
+      enPassantAfterMove: 0
+    });
     if(
       board.pieces[board.selectedPiece].name === "pawn" //we want to move a pawn
       && Math.abs(moveTo - board.selectedPiece) % 8 //we want to move diagonally
       && !board.pieces[moveTo] //there is no piece to capture on a diagonal square
     ) {
-      delete board.pieces[board.enPassant]
+      board.moveChain[board.moveChain.length - 1].capturedPieceNumber = board.enPassant;
+      board.moveChain[board.moveChain.length - 1].capturedPiece = board.pieces[board.enPassant];
+      delete board.pieces[board.enPassant];
+    }
+    if(board.pieces[moveTo]) {
+      board.moveChain[board.moveChain.length - 1].capturedPieceNumber = moveTo;
+      board.moveChain[board.moveChain.length - 1].capturedPiece = board.pieces[moveTo];
     }
     board.pieces[moveTo] = board.pieces[board.selectedPiece];
     if(board.pieces[moveTo].name === "pawn" && Math.abs(moveTo - board.selectedPiece) === 16) {
       board.enPassant = moveTo;
+      board.moveChain[board.moveChain.length - 1].enPassantAfterMove = moveTo;
     } else {
       board.enPassant = 0;
     }
@@ -97,6 +121,7 @@ export class BoardComponent {
       delete board.pieces[moveTo];
       this.queenBoxActivated = true;
     }
+    console.log(board.moveChain[board.moveChain.length - 1]);
     board.turnToMove = board.turnToMove === "white" ? "black" : "white";
     // if(!this.hasLegalMoves()) {
     //   if(this.isInCheck()) {
@@ -118,7 +143,9 @@ export class BoardComponent {
     } else {
       this.currentBoard.pieces[this.queenColumn] = piece;
     }
+    this.currentBoard.moveChain[this.currentBoard.moveChain.length - 1].queenedPiece = piece;
     this.queenBoxActivated = false;
+    console.log(this.currentBoard.moveChain[this.currentBoard.moveChain.length - 1]);
   }
 
   hasLegalMoves() {
@@ -129,4 +156,26 @@ export class BoardComponent {
     return true;
   }
 
+  takebackMove(board: Board) {
+    if(!board.moveChain.length) {
+      return;
+    }
+    //put the moved piece to the original square
+    //in case of queening, movedPiece will still be a pawn, promoted piece is stored in queenedPiece
+    board.pieces[board.moveChain[board.moveChain.length - 1].oldPieceNumber] = board.moveChain[board.moveChain.length - 1].movedPiece;
+    //remove the moved piece from the moved-to-square
+    delete board.pieces[board.moveChain[board.moveChain.length - 1].newPieceNumber];
+    //if there was a capture, put the captured piece back on the board
+    if(board.moveChain[board.moveChain.length - 1].capturedPieceNumber) {
+      board.pieces[board.moveChain[board.moveChain.length - 1].capturedPieceNumber] = board.moveChain[board.moveChain.length - 1].capturedPiece
+    }
+    board.turnToMove = board.turnToMove === "white" ? "black" : "white";
+    board.moveChain.pop();
+    this.clearSelection(board);
+    if(board.moveChain.length) {
+      board.enPassant = board.moveChain[board.moveChain.length - 1].enPassantAfterMove;
+    } else {
+      board.enPassant = 0;
+    }
+  }
 }
