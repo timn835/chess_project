@@ -26,7 +26,8 @@ export class BoardComponent {
   pieceNums: string[] = []; //helper array to hold piece positions (as digit strings) that are keys in the pieces object
   pieceNums2: string[] = []; //other helper array, just like above
   kingCanBeCaptured: boolean = false;
-  checkMate: boolean = false;
+  check: boolean = false;
+  mate: boolean = false;
   //////////
 
   alertCheckMate: boolean = false;
@@ -85,27 +86,48 @@ export class BoardComponent {
     if(this.currentBoard.highlightedCells.has(squareNumber)) {
       this.movePiece(this.currentBoard, squareNumber);
       this.movePiece(this.futureBoard, squareNumber);
+      //verify if it is check
+      this.check = false;
+      this.futureBoard.turnToMove = this.futureBoard.turnToMove === "white" ? "black" : "white";
+      this.pieceNums2 = Object.keys(this.futureBoard.pieces);
+      for(let i = 0; i < this.pieceNums2.length; i++) {
+        if(this.futureBoard.pieces[parseInt(this.pieceNums2[i])].color === this.futureBoard.turnToMove) {
+          this.selectPiece(this.futureBoard, parseInt(this.pieceNums2[i]));
+          this.futureBoard.highlightedCells.forEach(cell => {
+            if(this.futureBoard.pieces[cell] && this.futureBoard.pieces[cell].name === "king") {
+              this.check = true;
+            }
+          });
+        }
+        if(this.check) {
+          break;
+        }
+      }
+      this.futureBoard.turnToMove = this.futureBoard.turnToMove === "white" ? "black" : "white";
+
+      //verify if it is mate
       this.pieceNums2 = Object.keys(this.currentBoard.pieces);
-      this.checkMate = true;
+      this.mate = true;
       for(let i = 0; i < this.pieceNums2.length; i++) {
         if(this.currentBoard.pieces[parseInt(this.pieceNums2[i])].color === this.currentBoard.turnToMove) {
-          // this.clearSelection(this.currentBoard);
-          // this.clearSelection(this.futureBoard);
           this.selectAndTrim(this.currentBoard, this.futureBoard, parseInt(this.pieceNums2[i]));
           if(this.currentBoard.highlightedCells.size) {
-            this.checkMate = false;
+            this.mate = false;
             break;
           }
         }
       }
-      if(this.checkMate) {
-        this.alertCheckMate = true;
+      this.clearSelection(this.currentBoard);
+      if(this.mate) {
+        if(this.check) {
+          console.log("checkmate");
+        } else {
+          console.log("stalemate");
+        }
+        // this.alertCheckMate = true;
       }
     }
     else if(this.currentBoard.pieces[squareNumber] && this.currentBoard.turnToMove === this.currentBoard.pieces[squareNumber].color) {
-      console.log("hi");
-      console.log(this.currentBoard.pieces);
-      console.log(this.futureBoard.pieces);
       this.selectAndTrim(this.currentBoard, this.futureBoard, squareNumber);
       this.currentBoard.highlightPieceOnBoard = true;
     }
