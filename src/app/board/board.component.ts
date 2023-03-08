@@ -24,15 +24,19 @@ export class BoardComponent {
   helperSet: Set<number> = new Set(); //general helper set
   wronglyHighlightedCells: Set<number> = new Set(); //helper set for wrongly selected cells
   pieceNums: string[] = []; //helper array to hold piece positions (as digit strings) that are keys in the pieces object
+  pieceNums2: string[] = []; //other helper array, just like above
   kingCanBeCaptured: boolean = false;
+  checkMate: boolean = false;
   //////////
 
+  alertCheckMate: boolean = false;
   currentBoard: Board = {
     liveBoard: true,
     pieces: {},
     moveChain: [],
     turnToMove: "white",
     selectedPiece: 0,
+    highlightPieceOnBoard: false,
     enPassant: 0,
     highlightedCells: new Set()
   };
@@ -43,6 +47,7 @@ export class BoardComponent {
     moveChain: [],
     turnToMove: "white",
     selectedPiece: 0,
+    highlightPieceOnBoard: false,
     enPassant: 0,
     highlightedCells: new Set()
   };
@@ -76,48 +81,35 @@ export class BoardComponent {
   }
 
   squareClicked(squareNumber: number) {
+    this.currentBoard.highlightPieceOnBoard = false;
     if(this.currentBoard.highlightedCells.has(squareNumber)) {
-      console.log("moving a piece on live board");
       this.movePiece(this.currentBoard, squareNumber);
-      console.log("moving a piece on future board");
       this.movePiece(this.futureBoard, squareNumber);
-    }
-    else if(this.currentBoard.pieces[squareNumber] && this.currentBoard.turnToMove === this.currentBoard.pieces[squareNumber].color) {
-      console.log("selecting a piece on live board");
-      this.selectPiece(this.currentBoard, squareNumber);
-      
-      this.currentBoard.highlightedCells.forEach(moveTo => {
-        this.selectPiece(this.futureBoard, squareNumber);
-        this.movePiece(this.futureBoard, moveTo);
-        this.pieceNums = Object.keys(this.futureBoard.pieces);
-        for(let i = 0; i < this.pieceNums.length; i++) {
-          if(this.futureBoard.pieces[parseInt(this.pieceNums[i])].color === this.futureBoard.turnToMove) {
-            this.selectPiece(this.futureBoard, parseInt(this.pieceNums[i]));
-            this.futureBoard.highlightedCells.forEach(cell => {
-              if(this.futureBoard.pieces[cell] && this.futureBoard.pieces[cell].name === "king") {
-                this.kingCanBeCaptured = true;
-              }
-            });
-          }
-          if(this.kingCanBeCaptured) {
+      this.pieceNums2 = Object.keys(this.currentBoard.pieces);
+      this.checkMate = true;
+      for(let i = 0; i < this.pieceNums2.length; i++) {
+        if(this.currentBoard.pieces[parseInt(this.pieceNums2[i])].color === this.currentBoard.turnToMove) {
+          // this.clearSelection(this.currentBoard);
+          // this.clearSelection(this.futureBoard);
+          this.selectAndTrim(this.currentBoard, this.futureBoard, parseInt(this.pieceNums2[i]));
+          if(this.currentBoard.highlightedCells.size) {
+            this.checkMate = false;
             break;
           }
         }
-        if(this.kingCanBeCaptured) {
-          this.wronglyHighlightedCells.add(moveTo);
-          this.kingCanBeCaptured = false;
-        }
-        this.takebackMove(this.futureBoard);
-      });
-      this.wronglyHighlightedCells.forEach(wrongSquare => {
-        this.currentBoard.highlightedCells.delete(wrongSquare);
-      });
-      console.log(this.currentBoard.highlightedCells);
-      this.wronglyHighlightedCells.clear();
-      this.selectPiece(this.futureBoard, squareNumber);
+      }
+      if(this.checkMate) {
+        this.alertCheckMate = true;
+      }
+    }
+    else if(this.currentBoard.pieces[squareNumber] && this.currentBoard.turnToMove === this.currentBoard.pieces[squareNumber].color) {
+      console.log("hi");
+      console.log(this.currentBoard.pieces);
+      console.log(this.futureBoard.pieces);
+      this.selectAndTrim(this.currentBoard, this.futureBoard, squareNumber);
+      this.currentBoard.highlightPieceOnBoard = true;
     }
     else {
-      console.log("clearing selection on live board");
       this.clearSelection(this.currentBoard);
       this.clearSelection(this.futureBoard);
     }
@@ -163,13 +155,6 @@ export class BoardComponent {
       this.queenBoxActivated = true;
     }
     board.turnToMove = board.turnToMove === "white" ? "black" : "white";
-    // if(!this.hasLegalMoves()) {
-    //   if(this.isInCheck()) {
-    //     alert("checkmate");
-    //   } else {
-    //     alert("stalemate");
-    //   }
-    // } 
   }
 
   clearSelection(board: Board) {
@@ -216,5 +201,45 @@ export class BoardComponent {
     } else {
       board.enPassant = 0;
     }
+  }
+
+  takeBackOnBoard() {
+    this.takebackMove(this.currentBoard);
+    this.takebackMove(this.futureBoard);
+    if(this.alertCheckMate) {
+      this.alertCheckMate = false;
+    }
+  }
+
+  selectAndTrim(currentBoard: Board, futureBoard: Board, squareNumber: number) {
+    this.selectPiece(currentBoard, squareNumber);
+    currentBoard.highlightedCells.forEach(moveTo => {
+      this.selectPiece(futureBoard, squareNumber);
+      this.movePiece(futureBoard, moveTo);
+      this.pieceNums = Object.keys(futureBoard.pieces);
+      for(let i = 0; i < this.pieceNums.length; i++) {
+        if(futureBoard.pieces[parseInt(this.pieceNums[i])].color === futureBoard.turnToMove) {
+          this.selectPiece(futureBoard, parseInt(this.pieceNums[i]));
+          futureBoard.highlightedCells.forEach(cell => {
+            if(futureBoard.pieces[cell] && futureBoard.pieces[cell].name === "king") {
+              this.kingCanBeCaptured = true;
+            }
+          });
+        }
+        if(this.kingCanBeCaptured) {
+          break;
+        }
+      }
+      if(this.kingCanBeCaptured) {
+        this.wronglyHighlightedCells.add(moveTo);
+        this.kingCanBeCaptured = false;
+      }
+      this.takebackMove(futureBoard);
+    });
+    this.wronglyHighlightedCells.forEach(wrongSquare => {
+      currentBoard.highlightedCells.delete(wrongSquare);
+    });
+    this.wronglyHighlightedCells.clear();
+    this.selectPiece(futureBoard, squareNumber);
   }
 }

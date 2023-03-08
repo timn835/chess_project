@@ -10,3 +10,9 @@
     /* background-color: green;
     opacity: 0.5; */
 }
+
+.checkmate-box {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}

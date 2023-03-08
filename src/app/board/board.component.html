@@ -1,5 +1,8 @@
-<button class="m-2 btn btn-dark" (click)="takebackMove(currentBoard)">Takeback <- </button>
+<button class="m-2 btn btn-dark" (click)="takeBackOnBoard()">Takeback <- </button>
 <div class="board container p-0 border border-dark">
+    <div class="checkmate-box" *ngIf="alertCheckMate">
+        Checkmate
+    </div>
     <div class="queening-box" *ngIf="queenBoxActivated">
         <app-queening-box
             [queenColumn]="queenColumn"
@@ -18,7 +21,7 @@
             *ngFor="let col of cols"
             (click)="squareClicked((row - 1) * 8 + col)"
             [ngStyle]="{
-                backgroundColor: currentBoard.selectedPiece === (row - 1) * 8 + col ? '#FFA500' :
+                backgroundColor: currentBoard.selectedPiece === (row - 1) * 8 + col && currentBoard.highlightPieceOnBoard ? '#FFA500' :
                 ((col + row) % 2 === 0 ? '#E0E0E0' : '#005100')
             }"
             style="

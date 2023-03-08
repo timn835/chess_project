@@ -7,6 +7,7 @@ export interface Board {
     moveChain: Move[],
     turnToMove: string,
     selectedPiece: number,
+    highlightPieceOnBoard: boolean,
     enPassant: number,
     highlightedCells: Set<number>
 }
