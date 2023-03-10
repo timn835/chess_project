@@ -7,5 +7,9 @@ export interface Move {
     newPieceNumber: number,
     capturedPiece: Piece,
     capturedPieceNumber: number,
-    enPassantAfterMove: number
+    enPassantAfterMove: number,
+    whiteCanCastleLeftAfterMove: boolean,
+    whiteCanCastleRightAfterMove: boolean,
+    blackCanCastleLeftAfterMove: boolean,
+    blackCanCastleRightAfterMove: boolean,
 }

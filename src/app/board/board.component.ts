@@ -14,6 +14,8 @@ export class BoardComponent {
   ngOnInit(): void {
     this.currentBoard.pieces = this.boardService.getPieces();
     this.boardService.syncPieces(this.currentBoard, this.futureBoard);
+    this.boardService.setInitialKingColumn(this.currentBoard);
+    this.futureBoard.initialKingColumn = this.currentBoard.initialKingColumn;
   }
 
   rows: number[] = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -36,6 +38,11 @@ export class BoardComponent {
     pieces: {},
     moveChain: [],
     turnToMove: "white",
+    initialKingColumn: 0,
+    whiteCanCastleLeft: true,
+    whiteCanCastleRight: true,
+    blackCanCastleLeft: true,
+    blackCanCastleRight: true,
     selectedPiece: 0,
     highlightPieceOnBoard: false,
     enPassant: 0,
@@ -47,6 +54,11 @@ export class BoardComponent {
     pieces: {},
     moveChain: [],
     turnToMove: "white",
+    initialKingColumn: 0,
+    whiteCanCastleLeft: true,
+    whiteCanCastleRight: true,
+    blackCanCastleLeft: true,
+    blackCanCastleRight: true,
     selectedPiece: 0,
     highlightPieceOnBoard: false,
     enPassant: 0,
@@ -59,28 +71,6 @@ export class BoardComponent {
   queenRowsBlack: Set<number> = new Set([1, 2, 3, 4]);
   queenColumn: number = 0;
 
-  selectPiece(board: Board, pieceNumber: number) {
-    board.selectedPiece = pieceNumber;
-    board.highlightedCells.clear();
-    this.addPotentialMoves(board, pieceNumber)
-  }
-
-  addPotentialMoves(board: Board, pieceNumber: number) {
-    if(board.pieces[pieceNumber].name === "pawn") {
-      this.boardService.addPawnMoves(board, pieceNumber, board.pieces[pieceNumber].color === "white" ? 1 : -1);
-    } else if (board.pieces[pieceNumber].name === "rook") {
-      this.boardService.addRookMoves(board, pieceNumber);
-    } else if (board.pieces[pieceNumber].name === "knight") {
-      this.boardService.addKnightMoves(board, pieceNumber);
-    } else if (board.pieces[pieceNumber].name === "bishop") {
-      this.boardService.addBishopMoves(board, pieceNumber);
-    } else if (board.pieces[pieceNumber].name === "queen") {
-      this.boardService.addQueenMoves(board, pieceNumber);
-    } else {
-      this.boardService.addKingMoves(board, pieceNumber);
-    }
-  }
-
   squareClicked(squareNumber: number) {
     this.currentBoard.highlightPieceOnBoard = false;
     if(this.currentBoard.highlightedCells.has(squareNumber)) {
@@ -92,9 +82,9 @@ export class BoardComponent {
       this.pieceNums2 = Object.keys(this.futureBoard.pieces);
       for(let i = 0; i < this.pieceNums2.length; i++) {
         if(this.futureBoard.pieces[parseInt(this.pieceNums2[i])].color === this.futureBoard.turnToMove) {
-          this.selectPiece(this.futureBoard, parseInt(this.pieceNums2[i]));
+          this.boardService.selectPiece(this.futureBoard, parseInt(this.pieceNums2[i]));
           this.futureBoard.highlightedCells.forEach(cell => {
-            if(this.futureBoard.pieces[cell] && this.futureBoard.pieces[cell].name === "king") {
+            if(this.futureBoard.pieces[cell] && this.futureBoard.pieces[cell].name === "king" && this.futureBoard.pieces[cell].color !== this.futureBoard.turnToMove) {
               this.check = true;
             }
           });
@@ -117,7 +107,7 @@ export class BoardComponent {
           }
         }
       }
-      this.clearSelection(this.currentBoard);
+      this.boardService.clearSelection(this.currentBoard);
       if(this.mate) {
         if(this.check) {
           console.log("checkmate");
@@ -128,12 +118,16 @@ export class BoardComponent {
       }
     }
     else if(this.currentBoard.pieces[squareNumber] && this.currentBoard.turnToMove === this.currentBoard.pieces[squareNumber].color) {
-      this.selectAndTrim(this.currentBoard, this.futureBoard, squareNumber);
-      this.currentBoard.highlightPieceOnBoard = true;
+      if(this.currentBoard.selectedPiece === squareNumber) {
+        this.boardService.clearSelection(this.currentBoard)
+      } else {
+        this.selectAndTrim(this.currentBoard, this.futureBoard, squareNumber);
+        this.currentBoard.highlightPieceOnBoard = true;
+      }
     }
     else {
-      this.clearSelection(this.currentBoard);
-      this.clearSelection(this.futureBoard);
+      this.boardService.clearSelection(this.currentBoard);
+      this.boardService.clearSelection(this.futureBoard);
     }
   }
 
@@ -145,8 +139,15 @@ export class BoardComponent {
       newPieceNumber: moveTo,
       capturedPiece: {name: "n", color: "n"},
       capturedPieceNumber: 0,
-      enPassantAfterMove: 0
+      enPassantAfterMove: 0,
+      whiteCanCastleLeftAfterMove: true,
+      whiteCanCastleRightAfterMove: true,
+      blackCanCastleLeftAfterMove: true,
+      blackCanCastleRightAfterMove: true,
     });
+
+    this.boardService.updateCastlingRights(board, board.moveChain[board.moveChain.length - 1]);
+
     if(
       board.pieces[board.selectedPiece].name === "pawn" //we want to move a pawn
       && Math.abs(moveTo - board.selectedPiece) % 8 //we want to move diagonally
@@ -156,19 +157,42 @@ export class BoardComponent {
       board.moveChain[board.moveChain.length - 1].capturedPiece = board.pieces[board.enPassant];
       delete board.pieces[board.enPassant];
     }
-    if(board.pieces[moveTo]) {
+
+    if(board.pieces[moveTo] && board.pieces[moveTo].color !== board.turnToMove) {
       board.moveChain[board.moveChain.length - 1].capturedPieceNumber = moveTo;
       board.moveChain[board.moveChain.length - 1].capturedPiece = board.pieces[moveTo];
     }
-    board.pieces[moveTo] = board.pieces[board.selectedPiece];
-    if(board.pieces[moveTo].name === "pawn" && Math.abs(moveTo - board.selectedPiece) === 16) {
-      board.enPassant = moveTo;
-      board.moveChain[board.moveChain.length - 1].enPassantAfterMove = moveTo;
+
+    if(board.pieces[moveTo] && board.pieces[board.selectedPiece].color === board.pieces[moveTo].color) {
+      //The only time when we move on a square of the same color is when we are castling
+      //so this is a necessary and sufficient condition for castling
+      //we do not even need to check if the piece at moveTo is a rook
+      if(moveTo > board.initialKingColumn) {
+        //we are castling to the right
+        if(board.turnToMove === "white") {
+          board.pieces[7] = board.pieces[board.selectedPiece];
+          board.pieces[6] = board.pieces[moveTo];
+          delete board.pieces[moveTo];
+          if(board.selectedPiece !== 7) {
+            delete board.pieces[board.selectedPiece];
+          }
+        }
+      }
+
     } else {
-      board.enPassant = 0;
+      board.pieces[moveTo] = board.pieces[board.selectedPiece];
+      if(board.pieces[moveTo].name === "pawn" && Math.abs(moveTo - board.selectedPiece) === 16) {
+        board.enPassant = moveTo;
+        board.moveChain[board.moveChain.length - 1].enPassantAfterMove = moveTo;
+      } else {
+        board.enPassant = 0;
+      }
+      delete board.pieces[board.selectedPiece];
     }
-    delete board.pieces[board.selectedPiece];
-    this.clearSelection(board);
+
+
+    
+    this.boardService.clearSelection(board);
     if(board.liveBoard && board.pieces[moveTo].name === "pawn" && (moveTo > 56 || moveTo < 9)) {
       this.queenRows = board.pieces[moveTo].color === "white" ?
         this.queenRowsWhite : this.queenRowsBlack;
@@ -179,11 +203,6 @@ export class BoardComponent {
     board.turnToMove = board.turnToMove === "white" ? "black" : "white";
   }
 
-  clearSelection(board: Board) {
-    board.selectedPiece = 0
-    board.highlightedCells.clear();
-  }
-
   onPromotionSelection(piece:Piece) {
     if(piece.color === "white") {
       this.currentBoard.pieces[56 + this.queenColumn] = piece;
@@ -192,14 +211,6 @@ export class BoardComponent {
     }
     this.currentBoard.moveChain[this.currentBoard.moveChain.length - 1].queenedPiece = piece;
     this.queenBoxActivated = false;
-  }
-
-  hasLegalMoves() {
-    return true;
-  }
-
-  isInCheck() {
-    return true;
   }
 
   takebackMove(board: Board) {
@@ -217,11 +228,19 @@ export class BoardComponent {
     }
     board.turnToMove = board.turnToMove === "white" ? "black" : "white";
     board.moveChain.pop();
-    this.clearSelection(board);
+    this.boardService.clearSelection(board);
     if(board.moveChain.length) {
       board.enPassant = board.moveChain[board.moveChain.length - 1].enPassantAfterMove;
+      board.whiteCanCastleLeft = board.moveChain[board.moveChain.length - 1].whiteCanCastleLeftAfterMove;
+      board.whiteCanCastleRight = board.moveChain[board.moveChain.length - 1].whiteCanCastleRightAfterMove;
+      board.blackCanCastleLeft = board.moveChain[board.moveChain.length - 1].blackCanCastleLeftAfterMove;
+      board.blackCanCastleRight = board.moveChain[board.moveChain.length - 1].blackCanCastleRightAfterMove;
     } else {
       board.enPassant = 0;
+      board.whiteCanCastleLeft = true;
+      board.whiteCanCastleRight = true;
+      board.blackCanCastleLeft = true;
+      board.blackCanCastleRight = true;
     }
   }
 
@@ -234,16 +253,16 @@ export class BoardComponent {
   }
 
   selectAndTrim(currentBoard: Board, futureBoard: Board, squareNumber: number) {
-    this.selectPiece(currentBoard, squareNumber);
+    this.boardService.selectPiece(currentBoard, squareNumber);
     currentBoard.highlightedCells.forEach(moveTo => {
-      this.selectPiece(futureBoard, squareNumber);
+      this.boardService.selectPiece(futureBoard, squareNumber);
       this.movePiece(futureBoard, moveTo);
       this.pieceNums = Object.keys(futureBoard.pieces);
       for(let i = 0; i < this.pieceNums.length; i++) {
         if(futureBoard.pieces[parseInt(this.pieceNums[i])].color === futureBoard.turnToMove) {
-          this.selectPiece(futureBoard, parseInt(this.pieceNums[i]));
+          this.boardService.selectPiece(futureBoard, parseInt(this.pieceNums[i]));
           futureBoard.highlightedCells.forEach(cell => {
-            if(futureBoard.pieces[cell] && futureBoard.pieces[cell].name === "king") {
+            if(futureBoard.pieces[cell] && futureBoard.pieces[cell].name === "king" && futureBoard.pieces[cell].color !== futureBoard.turnToMove) {
               this.kingCanBeCaptured = true;
             }
           });
@@ -262,6 +281,6 @@ export class BoardComponent {
       currentBoard.highlightedCells.delete(wrongSquare);
     });
     this.wronglyHighlightedCells.clear();
-    this.selectPiece(futureBoard, squareNumber);
+    this.boardService.selectPiece(futureBoard, squareNumber);
   }
 }
