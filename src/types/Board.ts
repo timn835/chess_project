@@ -7,6 +7,8 @@ export interface Board {
     moveChain: Move[],
     turnToMove: string,
     initialKingColumn: number,
+    initialLeftRookColumn: number,
+    initialRightRookColumn: number,
     whiteCanCastleLeft: boolean,
     whiteCanCastleRight: boolean,
     blackCanCastleLeft: boolean,

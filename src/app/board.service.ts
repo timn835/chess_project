@@ -21,7 +21,6 @@ export class BoardService {
 
   pieceNums: string[] = []; //helper array to hold piece positions (as digit strings) that are keys in the pieces object
   pieceNums2: string[] = []; //other helper array, just like above
-  castlingPointer: number = 0; //helper variable for castling
   canCastle: boolean = true; //helper boolean variable for castling
 
   getPieces() {
@@ -93,6 +92,24 @@ export class BoardService {
     for(let i = 1; i < 9; i++) {
       if(board.pieces[i].name === "king") {
         board.initialKingColumn = i;
+        return;
+      }
+    }
+  }
+
+  setInitialLeftRookColumn(board: Board) {
+    for(let i = board.initialKingColumn - 1; i > 0; i--) {
+      if(board.pieces[i].name === "rook") {
+        board.initialLeftRookColumn = i;
+        return;
+      }
+    }
+  }
+
+  setInitialRightRookColumn(board: Board) {
+    for(let i = board.initialKingColumn + 1; i < 9; i++) {
+      if(board.pieces[i].name === "rook") {
+        board.initialRightRookColumn = i;
         return;
       }
     }
@@ -264,31 +281,19 @@ export class BoardService {
     })
 
     if(board.pieces[pieceNumber].color === "white") {
-      if(board.whiteCanCastleRight) {
-        //need to rework this logic
-        this.canCastle = true;
-        this.castlingPointer = board.initialKingColumn;
-        while(this.castlingPointer <= this.castlingRightColumn) {
-          if(!board.pieces[this.castlingPointer] || board.pieces[this.castlingPointer].name === "king" || board.pieces[this.castlingPointer].name === "rook") {
-            this.castlingPointer++;
-          }
-        }
-        if(this.castlingPointer > this.castlingRightColumn) {
-
-          //if we got to this point, we know that we can castle
-          //we will castle by clicking the fixed castlingRightColumn
-          board.highlightedCells.add(this.castlingRightColumn);
-        }
+      // if(board.whiteCanCastleRight) {
+      if(this.whiteCanCastleRight(board)) {
+        board.highlightedCells.add(board.initialRightRookColumn);
       }
-      if(board.whiteCanCastleLeft) {
-
+      if(this.whiteCanCastleLeft(board)) {
+        board.highlightedCells.add(board.initialLeftRookColumn);
       }
     } else {
-      if(board.blackCanCastleRight) {
-
+      if(this.blackCanCastleRight(board)) {
+        board.highlightedCells.add(board.initialRightRookColumn);
       }
-      if(board.blackCanCastleLeft) {
-
+      if(this.blackCanCastleLeft(board)) {
+        board.highlightedCells.add(board.initialLeftRookColumn);
       }
     }
   }
@@ -306,6 +311,40 @@ export class BoardService {
   }
 
   //helper functions for castling
+
+  whiteCanCastleRight(board: Board): boolean {
+    if(!board.whiteCanCastleRight) {
+      return false;
+    }
+    for(let i = Math.min(board.initialKingColumn, 6, 7); i <= Math.max(board.initialKingColumn, 6, 7); i++) {
+      if(i !== board.initialRightRookColumn && i !== board.initialKingColumn && board.pieces[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  whiteCanCastleLeft(board: Board): boolean {
+    if(!board.whiteCanCastleLeft) {
+      return false;
+    }
+    return true;
+  }
+
+  blackCanCastleRight(board: Board): boolean {
+    if(!board.blackCanCastleRight) {
+      return false;
+    }
+    return true;
+  }
+
+  blackCanCastleLeft(board: Board): boolean {
+    if(!board.blackCanCastleLeft) {
+      return false;
+    }
+    return true;
+  }
+
   canSquareGetHit(board: Board, squareNumber: number): boolean {
     board.turnToMove = board.turnToMove === "white" ? "black" : "white";
     this.pieceNums2 = Object.keys(board.pieces);

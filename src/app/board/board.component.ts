@@ -15,7 +15,11 @@ export class BoardComponent {
     this.currentBoard.pieces = this.boardService.getPieces();
     this.boardService.syncPieces(this.currentBoard, this.futureBoard);
     this.boardService.setInitialKingColumn(this.currentBoard);
+    this.boardService.setInitialLeftRookColumn(this.currentBoard);
+    this.boardService.setInitialRightRookColumn(this.currentBoard);
     this.futureBoard.initialKingColumn = this.currentBoard.initialKingColumn;
+    this.futureBoard.initialLeftRookColumn = this.currentBoard.initialLeftRookColumn;
+    this.futureBoard.initialRightRookColumn = this.currentBoard.initialRightRookColumn;
   }
 
   rows: number[] = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -39,6 +43,8 @@ export class BoardComponent {
     moveChain: [],
     turnToMove: "white",
     initialKingColumn: 0,
+    initialLeftRookColumn: 0,
+    initialRightRookColumn: 0,
     whiteCanCastleLeft: true,
     whiteCanCastleRight: true,
     blackCanCastleLeft: true,
@@ -55,6 +61,8 @@ export class BoardComponent {
     moveChain: [],
     turnToMove: "white",
     initialKingColumn: 0,
+    initialLeftRookColumn: 0,
+    initialRightRookColumn: 0,
     whiteCanCastleLeft: true,
     whiteCanCastleRight: true,
     blackCanCastleLeft: true,
