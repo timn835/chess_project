@@ -131,6 +131,7 @@ export class BoardComponent {
       } else {
         this.selectAndTrim(this.currentBoard, this.futureBoard, squareNumber);
         this.currentBoard.highlightPieceOnBoard = true;
+        console.log(this.currentBoard.highlightedCells)
       }
     }
     else {
@@ -148,6 +149,7 @@ export class BoardComponent {
       capturedPiece: {name: "n", color: "n"},
       capturedPieceNumber: 0,
       enPassantAfterMove: 0,
+      hasJustCastled: false,
       whiteCanCastleLeftAfterMove: true,
       whiteCanCastleRightAfterMove: true,
       blackCanCastleLeftAfterMove: true,
@@ -175,18 +177,57 @@ export class BoardComponent {
       //The only time when we move on a square of the same color is when we are castling
       //so this is a necessary and sufficient condition for castling
       //we do not even need to check if the piece at moveTo is a rook
-      if(moveTo > board.initialKingColumn) {
-        //we are castling to the right
-        if(board.turnToMove === "white") {
+      board.moveChain[board.moveChain.length - 1].hasJustCastled = true;
+
+      if(board.turnToMove === "white") {
+        if(moveTo > board.initialKingColumn) {
+          //we are castling to the right with white
           board.pieces[7] = board.pieces[board.selectedPiece];
           board.pieces[6] = board.pieces[moveTo];
-          delete board.pieces[moveTo];
-          if(board.selectedPiece !== 7) {
-            delete board.pieces[board.selectedPiece];
+          if(board.initialKingColumn !== 7) {
+            delete board.pieces[board.initialKingColumn];
           }
+          if(board.initialRightRookColumn !== 6) {
+            delete board.pieces[board.initialRightRookColumn];
+          }
+          board.moveChain[board.moveChain.length - 1].newPieceNumber = 7;
+        } else {
+          //we are castling to the left with white
+          board.pieces[3] = board.pieces[board.selectedPiece];
+          board.pieces[4] = board.pieces[moveTo];
+          if(board.initialKingColumn !== 3) {
+            delete board.pieces[board.initialKingColumn];
+          }
+          if(board.initialLeftRookColumn !== 4) {
+            delete board.pieces[board.initialLeftRookColumn];
+          }
+          board.moveChain[board.moveChain.length - 1].newPieceNumber = 3;
+        }
+      } else {
+        if(moveTo - 56 > board.initialKingColumn) {
+          //we are castling to the right with black
+          board.pieces[63] = board.pieces[board.selectedPiece];
+          board.pieces[62] = board.pieces[moveTo];
+          if(board.initialKingColumn !== 7) {
+            delete board.pieces[board.initialKingColumn + 56];
+          }
+          if(board.initialRightRookColumn !== 6) {
+            delete board.pieces[board.initialRightRookColumn + 56];
+          }
+          board.moveChain[board.moveChain.length - 1].newPieceNumber = 63;
+        } else {
+          //we are castling to the left with black
+          board.pieces[59] = board.pieces[board.selectedPiece];
+          board.pieces[60] = board.pieces[moveTo];
+          if(board.initialKingColumn !== 3) {
+            delete board.pieces[board.initialKingColumn + 56];
+          }
+          if(board.initialLeftRookColumn !== 4) {
+            delete board.pieces[board.initialLeftRookColumn + 56];
+          }
+          board.moveChain[board.moveChain.length - 1].newPieceNumber = 59;
         }
       }
-
     } else {
       board.pieces[moveTo] = board.pieces[board.selectedPiece];
       if(board.pieces[moveTo].name === "pawn" && Math.abs(moveTo - board.selectedPiece) === 16) {
@@ -201,7 +242,7 @@ export class BoardComponent {
 
     
     this.boardService.clearSelection(board);
-    if(board.liveBoard && board.pieces[moveTo].name === "pawn" && (moveTo > 56 || moveTo < 9)) {
+    if(board.liveBoard && board.pieces[moveTo] && board.pieces[moveTo].name === "pawn" && (moveTo > 56 || moveTo < 9)) {
       this.queenRows = board.pieces[moveTo].color === "white" ?
         this.queenRowsWhite : this.queenRowsBlack;
       this.queenColumn = (moveTo - 1) % 8 + 1;
@@ -228,9 +269,40 @@ export class BoardComponent {
     //put the moved piece to the original square
     //in case of queening, movedPiece will still be a pawn, promoted piece is stored in queenedPiece
     board.pieces[board.moveChain[board.moveChain.length - 1].oldPieceNumber] = board.moveChain[board.moveChain.length - 1].movedPiece;
+    //if the newPieceNumber and the oldPiece number are different (relevant for castling),
     //remove the moved piece from the moved-to-square
-    delete board.pieces[board.moveChain[board.moveChain.length - 1].newPieceNumber];
+    if(board.moveChain[board.moveChain.length - 1].oldPieceNumber !== board.moveChain[board.moveChain.length - 1].newPieceNumber) {
+      delete board.pieces[board.moveChain[board.moveChain.length - 1].newPieceNumber];
+    }
     //if there was a capture, put the captured piece back on the board
+    if(board.moveChain[board.moveChain.length - 1].hasJustCastled) {
+      //we need to put the rook to it's square before castling
+      if(board.moveChain[board.moveChain.length - 1].movedPiece.color === "white") {
+        if(board.moveChain[board.moveChain.length - 1].newPieceNumber === 7) {
+          if(board.initialRightRookColumn !== 6) {
+            board.pieces[board.initialRightRookColumn] = board.pieces[6];
+            delete board.pieces[6];
+          }
+        } else {
+          if(board.initialLeftRookColumn !== 4) {
+            board.pieces[board.initialLeftRookColumn] = board.pieces[4];
+            delete board.pieces[4];
+          }
+        }
+      } else {
+        if(board.moveChain[board.moveChain.length - 1].newPieceNumber === 63) {
+          if(board.initialRightRookColumn !== 6) {
+            board.pieces[board.initialRightRookColumn + 56] = board.pieces[62];
+            delete board.pieces[62];
+          }
+        } else {
+          if(board.initialLeftRookColumn !== 4) {
+            board.pieces[board.initialLeftRookColumn + 56] = board.pieces[60];
+            delete board.pieces[60];
+          }
+        }
+      }
+    }
     if(board.moveChain[board.moveChain.length - 1].capturedPieceNumber) {
       board.pieces[board.moveChain[board.moveChain.length - 1].capturedPieceNumber] = board.moveChain[board.moveChain.length - 1].capturedPiece
     }
@@ -284,6 +356,7 @@ export class BoardComponent {
         this.kingCanBeCaptured = false;
       }
       this.takebackMove(futureBoard);
+      
     });
     this.wronglyHighlightedCells.forEach(wrongSquare => {
       currentBoard.highlightedCells.delete(wrongSquare);

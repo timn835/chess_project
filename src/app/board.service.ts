@@ -90,7 +90,7 @@ export class BoardService {
 
   setInitialKingColumn(board: Board) {
     for(let i = 1; i < 9; i++) {
-      if(board.pieces[i].name === "king") {
+      if(board.pieces[i] && board.pieces[i].name === "king") {
         board.initialKingColumn = i;
         return;
       }
@@ -99,7 +99,7 @@ export class BoardService {
 
   setInitialLeftRookColumn(board: Board) {
     for(let i = board.initialKingColumn - 1; i > 0; i--) {
-      if(board.pieces[i].name === "rook") {
+      if(board.pieces[i] && board.pieces[i].name === "rook") {
         board.initialLeftRookColumn = i;
         return;
       }
@@ -108,7 +108,7 @@ export class BoardService {
 
   setInitialRightRookColumn(board: Board) {
     for(let i = board.initialKingColumn + 1; i < 9; i++) {
-      if(board.pieces[i].name === "rook") {
+      if(board.pieces[i] && board.pieces[i].name === "rook") {
         board.initialRightRookColumn = i;
         return;
       }
@@ -131,6 +131,11 @@ export class BoardService {
   }
 
   selectPiece(board: Board, pieceNumber: number) {
+    // if(board.liveBoard) {
+    //   console.log("live board");
+    // } else {
+    //   console.log("future board");
+    // }
     board.selectedPiece = pieceNumber;
     board.highlightedCells.clear();
     this.addPotentialMoves(board, pieceNumber)
@@ -281,7 +286,6 @@ export class BoardService {
     })
 
     if(board.pieces[pieceNumber].color === "white") {
-      // if(board.whiteCanCastleRight) {
       if(this.whiteCanCastleRight(board)) {
         board.highlightedCells.add(board.initialRightRookColumn);
       }
@@ -290,10 +294,10 @@ export class BoardService {
       }
     } else {
       if(this.blackCanCastleRight(board)) {
-        board.highlightedCells.add(board.initialRightRookColumn);
+        board.highlightedCells.add(board.initialRightRookColumn + 56);
       }
       if(this.blackCanCastleLeft(board)) {
-        board.highlightedCells.add(board.initialLeftRookColumn);
+        board.highlightedCells.add(board.initialLeftRookColumn + 56);
       }
     }
   }
@@ -316,7 +320,7 @@ export class BoardService {
     if(!board.whiteCanCastleRight) {
       return false;
     }
-    for(let i = Math.min(board.initialKingColumn, 6, 7); i <= Math.max(board.initialKingColumn, 6, 7); i++) {
+    for(let i = Math.min(board.initialKingColumn, board.initialRightRookColumn, 6, 7); i <= Math.max(board.initialKingColumn, board.initialRightRookColumn, 6, 7); i++) {
       if(i !== board.initialRightRookColumn && i !== board.initialKingColumn && board.pieces[i]) {
         return false;
       }
@@ -328,6 +332,11 @@ export class BoardService {
     if(!board.whiteCanCastleLeft) {
       return false;
     }
+    for(let i = Math.min(board.initialKingColumn, board.initialLeftRookColumn, 3, 4); i <= Math.max(board.initialKingColumn, board.initialLeftRookColumn, 3, 4); i++) {
+      if(i !== board.initialLeftRookColumn && i !== board.initialKingColumn && board.pieces[i]) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -335,12 +344,22 @@ export class BoardService {
     if(!board.blackCanCastleRight) {
       return false;
     }
+    for(let i = Math.min(board.initialKingColumn, board.initialRightRookColumn, 6, 7); i <= Math.max(board.initialKingColumn, board.initialRightRookColumn, 6, 7); i++) {
+      if(i !== board.initialRightRookColumn && i !== board.initialKingColumn && board.pieces[i + 56]) {
+        return false;
+      }
+    }
     return true;
   }
 
   blackCanCastleLeft(board: Board): boolean {
     if(!board.blackCanCastleLeft) {
       return false;
+    }
+    for(let i = Math.min(board.initialKingColumn, board.initialLeftRookColumn, 3, 4); i <= Math.max(board.initialKingColumn, board.initialLeftRookColumn, 3, 4); i++) {
+      if(i !== board.initialLeftRookColumn && i !== board.initialKingColumn && board.pieces[i + 56]) {
+        return false;
+      }
     }
     return true;
   }
@@ -365,22 +384,25 @@ export class BoardService {
 
   updateCastlingRights(board: Board, move: Move) {
     if(board.pieces[board.selectedPiece].name === "king") {
-      board.whiteCanCastleLeft = false;
-      board.whiteCanCastleRight = false;
-      board.blackCanCastleLeft = false;
-      board.blackCanCastleRight = false;
+      if(board.pieces[board.selectedPiece].color === "white") {
+        board.whiteCanCastleLeft = false;
+        board.whiteCanCastleRight = false;
+      } else {
+        board.blackCanCastleLeft = false;
+        board.blackCanCastleRight = false;
+      }
     }
     else if(board.pieces[board.selectedPiece].name === "rook") {
-      if(board.selectedPiece < board.initialKingColumn) {
-        if(board.whiteCanCastleLeft && board.pieces[board.selectedPiece].color === "white") {
+      if(board.pieces[board.selectedPiece].color === "white") {
+        if(board.whiteCanCastleLeft && board.selectedPiece === board.initialLeftRookColumn) {
           board.whiteCanCastleLeft = false;
-        } else if(board.blackCanCastleLeft && board.pieces[board.selectedPiece].color === "black") {
-          board.blackCanCastleLeft = false;
-        }
-      } else if(board.selectedPiece > board.initialKingColumn) {
-        if(board.whiteCanCastleRight && board.pieces[board.selectedPiece].color === "white") {
+        } else if(board.whiteCanCastleRight && board.selectedPiece === board.initialRightRookColumn) {
           board.whiteCanCastleRight = false;
-        } else if(board.blackCanCastleRight && board.pieces[board.selectedPiece].color === "black") {
+        }
+      } else {
+        if(board.blackCanCastleLeft && board.selectedPiece === board.initialLeftRookColumn + 56) {
+          board.blackCanCastleLeft = false;
+        } else if(board.blackCanCastleRight && board.selectedPiece === board.initialRightRookColumn + 56) {
           board.blackCanCastleRight = false;
         }
       }
