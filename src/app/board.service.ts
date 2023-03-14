@@ -14,6 +14,8 @@ export class BoardService {
   helperSet: Set<number> = new Set();
   stepLength: number = 0;
   straightSteps: number[][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  upDiagSteps: number[][] = [[1, -1], [1, 1]];
+  downDiagSteps: number[][] = [[-1, -1], [-1, 1]]
   diagSteps: number[][] = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
   knightSteps: number[][] = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
   castlingRightColumn = 7;
@@ -131,14 +133,9 @@ export class BoardService {
   }
 
   selectPiece(board: Board, pieceNumber: number) {
-    // if(board.liveBoard) {
-    //   console.log("live board");
-    // } else {
-    //   console.log("future board");
-    // }
     board.selectedPiece = pieceNumber;
     board.highlightedCells.clear();
-    this.addPotentialMoves(board, pieceNumber)
+    this.addPotentialMoves(board)
   }
 
   clearSelection(board: Board) {
@@ -146,60 +143,74 @@ export class BoardService {
     board.highlightedCells.clear();
   }
 
-  addPotentialMoves(board: Board, pieceNumber: number) {
-    if(board.pieces[pieceNumber].name === "pawn") {
-      this.addPawnMoves(board, pieceNumber, board.pieces[pieceNumber].color === "white" ? 1 : -1);
-    } else if (board.pieces[pieceNumber].name === "rook") {
-      this.addRookMoves(board, pieceNumber);
-    } else if (board.pieces[pieceNumber].name === "knight") {
-      this.addKnightMoves(board, pieceNumber);
-    } else if (board.pieces[pieceNumber].name === "bishop") {
-      this.addBishopMoves(board, pieceNumber);
-    } else if (board.pieces[pieceNumber].name === "queen") {
-      this.addQueenMoves(board, pieceNumber);
+  addPotentialMoves(board: Board) {
+    if(board.pieces[board.selectedPiece].name === "pawn") {
+      this.addPawnMoves(board, board.pieces[board.selectedPiece].color === "white" ? 1 : -1);
+    } else if (board.pieces[board.selectedPiece].name === "rook") {
+      this.addRookMoves(board);
+    } else if (board.pieces[board.selectedPiece].name === "knight") {
+      this.addKnightMoves(board);
+    } else if (board.pieces[board.selectedPiece].name === "bishop") {
+      this.addBishopMoves(board);
+    } else if (board.pieces[board.selectedPiece].name === "queen") {
+      this.addQueenMoves(board);
     } else {
-      this.addKingMoves(board, pieceNumber);
+      this.addKingMoves(board);
     }
   }
 
-  addPawnMoves(board: Board, pieceNumber: number, dirMult: number) {
+  addPawnMoves(board: Board, dirMult: number) {
     //we add the potential move
-    if(!board.pieces[dirMult * 8 + pieceNumber]) {
-      board.highlightedCells.add(dirMult * 8 + pieceNumber)
+    if(!board.pieces[dirMult * 8 + board.selectedPiece]) {
+      board.highlightedCells.add(dirMult * 8 + board.selectedPiece)
       //we add the possibility of jumping 2 squares on the first move
-      if(this.onFirstRank(pieceNumber, dirMult) && !board.pieces[dirMult * 16 + pieceNumber]) {
-        board.highlightedCells.add(dirMult * 16 + pieceNumber)
+      if(this.onStartingRank(board.selectedPiece, dirMult) && !board.pieces[dirMult * 16 + board.selectedPiece]) {
+        board.highlightedCells.add(dirMult * 16 + board.selectedPiece)
       }
     }
-    //we add the potential captures
-
-    if(this.pawnCanCapture(board.pieces, board.enPassant, pieceNumber, dirMult, 7)) {
-      board.highlightedCells.add(dirMult * 7 + pieceNumber);
-    }
-
-    if(this.pawnCanCapture(board.pieces, board.enPassant, pieceNumber, dirMult, 9)) {
-      board.highlightedCells.add(dirMult * 9 + pieceNumber);
+    //we add the potential captures, starting with en passant
+    this.row = Math.floor((board.selectedPiece - 1) / 8) + 1;
+    this.col = (board.selectedPiece - 1) % 8 + 1;
+    if(board.pieces[board.selectedPiece].color === "white") {
+      if(board.enPassant) {
+        if(Math.abs(Math.floor((board.enPassant - 1) % 8) + 1 - this.col) === 1) {
+          board.highlightedCells.add(board.enPassant + 8);
+        }
+      }
+      this.upDiagSteps.forEach(step => {
+        if(this.inRange(this.row + step[0], this.col + step[1])) {
+          if(board.pieces[(this.row + step[0] - 1) * 8 + this.col + step[1]] && board.pieces[(this.row + step[0] - 1) * 8 + this.col + step[1]].color === "black") {
+            board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
+          }
+        }
+      });
+    } else {
+      if(board.enPassant) {
+        if(Math.abs(Math.floor((board.enPassant - 1) % 8) + 1 - this.col) === 1) {
+          board.highlightedCells.add(board.enPassant - 8);
+        }
+      }
+      this.downDiagSteps.forEach(step => {
+        if(this.inRange(this.row + step[0], this.col + step[1])) {
+          if(board.pieces[(this.row + step[0] - 1) * 8 + this.col + step[1]] && board.pieces[(this.row + step[0] - 1) * 8 + this.col + step[1]].color === "white") {
+            board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
+          }
+        }
+      });
     }
   }
-  pawnCanCapture(pieces: {[key: number]: Piece}, enPassant: number, pieceNumber: number, dirMult: number, increment: number) {
-    return (
-      Math.abs(pieceNumber - enPassant) === 1 ||
-      (pieces[dirMult * increment + pieceNumber]
-      && pieces[dirMult * increment + pieceNumber].color !== pieces[pieceNumber].color)
-    );
-  }
 
-  onFirstRank(pieceNumber: number, dirMult: number) {
+  onStartingRank(pieceNumber: number, dirMult: number) {
     return (dirMult > 0 && pieceNumber < 17) || (dirMult < 0 && pieceNumber > 48);
   }
 
-  addRookMoves(board: Board, pieceNumber: number) {
-    this.row = Math.floor((pieceNumber - 1) / 8) + 1;
-    this.col = (pieceNumber - 1) % 8 + 1;
+  addRookMoves(board: Board) {
+    this.row = Math.floor((board.selectedPiece - 1) / 8) + 1;
+    this.col = (board.selectedPiece - 1) % 8 + 1;
     this.straightSteps.forEach(step => {
       this.stepLength = 1;
       while(true) {
-        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[board.selectedPiece].color)) {
           board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
           if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
             break;
@@ -211,54 +222,24 @@ export class BoardService {
       }
     })
   }
-  addKnightMoves(board: Board, pieceNumber: number) {
-    this.row = Math.floor((pieceNumber - 1) / 8) + 1;
-    this.col = (pieceNumber - 1) % 8 + 1;
+
+  addKnightMoves(board: Board) {
+    this.row = Math.floor((board.selectedPiece - 1) / 8) + 1;
+    this.col = (board.selectedPiece - 1) % 8 + 1;
     this.knightSteps.forEach(step => {
-      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[pieceNumber].color)) {
+      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[board.selectedPiece].color)) {
         board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
       }
     })
   }
-  addBishopMoves(board: Board, pieceNumber: number) {
-    this.row = Math.floor((pieceNumber - 1) / 8) + 1;
-    this.col = (pieceNumber - 1) % 8 + 1;
+
+  addBishopMoves(board: Board) {
+    this.row = Math.floor((board.selectedPiece - 1) / 8) + 1;
+    this.col = (board.selectedPiece - 1) % 8 + 1;
     this.diagSteps.forEach(step => {
       this.stepLength = 1;
       while(true) {
-        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
-          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
-          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
-            break;
-          }
-          this.stepLength++;
-        } else {
-          break;
-        }
-      }
-    })
-  }
-  addQueenMoves(board: Board, pieceNumber: number) {
-    this.row = Math.floor((pieceNumber - 1) / 8) + 1;
-    this.col = (pieceNumber - 1) % 8 + 1;
-    this.straightSteps.forEach(step => {
-      this.stepLength = 1;
-      while(true) {
-        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
-          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
-          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
-            break;
-          }
-          this.stepLength++;
-        } else {
-          break;
-        }
-      }
-    })
-    this.diagSteps.forEach(step => {
-      this.stepLength = 1;
-      while(true) {
-        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[pieceNumber].color)) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[board.selectedPiece].color)) {
           board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
           if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
             break;
@@ -271,21 +252,54 @@ export class BoardService {
     })
   }
 
-  addKingMoves(board: Board, pieceNumber: number) {
-    this.row = Math.floor((pieceNumber - 1) / 8) + 1;
-    this.col = (pieceNumber - 1) % 8 + 1;
+  addQueenMoves(board: Board) {
+    this.row = Math.floor((board.selectedPiece - 1) / 8) + 1;
+    this.col = (board.selectedPiece - 1) % 8 + 1;
     this.straightSteps.forEach(step => {
-      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[pieceNumber].color)) {
+      this.stepLength = 1;
+      while(true) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[board.selectedPiece].color)) {
+          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
+          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
+            break;
+          }
+          this.stepLength++;
+        } else {
+          break;
+        }
+      }
+    })
+    this.diagSteps.forEach(step => {
+      this.stepLength = 1;
+      while(true) {
+        if(this.inRangeAndAvailable(board.pieces, this.row + this.stepLength * step[0], this.col + this.stepLength * step[1], board.pieces[board.selectedPiece].color)) {
+          board.highlightedCells.add((this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]);
+          if(board.pieces[(this.row + this.stepLength * step[0] - 1) * 8 + this.col + this.stepLength * step[1]]) {
+            break;
+          }
+          this.stepLength++;
+        } else {
+          break;
+        }
+      }
+    })
+  }
+
+  addKingMoves(board: Board) {
+    this.row = Math.floor((board.selectedPiece - 1) / 8) + 1;
+    this.col = (board.selectedPiece - 1) % 8 + 1;
+    this.straightSteps.forEach(step => {
+      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[board.selectedPiece].color)) {
         board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
       }
     })
     this.diagSteps.forEach(step => {
-      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[pieceNumber].color)) {
+      if(this.inRangeAndAvailable(board.pieces, this.row + step[0], this.col + step[1], board.pieces[board.selectedPiece].color)) {
         board.highlightedCells.add((this.row + step[0] - 1) * 8 + this.col + step[1]);
       }
     })
 
-    if(board.pieces[pieceNumber].color === "white") {
+    if(board.pieces[board.selectedPiece].color === "white") {
       if(this.whiteCanCastleRight(board)) {
         board.highlightedCells.add(board.initialRightRookColumn);
       }
@@ -325,6 +339,11 @@ export class BoardService {
         return false;
       }
     }
+    // for(let i = Math.min(board.initialKingColumn, 7); i <= Math.max(board.initialKingColumn, 7); i++) {
+    //   if(this.squareCanGetHit(board, i)) {
+    //     return false;
+    //   }
+    // }
     return true;
   }
 
@@ -364,7 +383,7 @@ export class BoardService {
     return true;
   }
 
-  canSquareGetHit(board: Board, squareNumber: number): boolean {
+  squareCanGetHit(board: Board, squareNumber: number): boolean {
     board.turnToMove = board.turnToMove === "white" ? "black" : "white";
     this.pieceNums2 = Object.keys(board.pieces);
     for(let i = 0; i < this.pieceNums2.length; i++) {

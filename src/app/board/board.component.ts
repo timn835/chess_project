@@ -132,6 +132,7 @@ export class BoardComponent {
         this.selectAndTrim(this.currentBoard, this.futureBoard, squareNumber);
         this.currentBoard.highlightPieceOnBoard = true;
         console.log(this.currentBoard.highlightedCells)
+        console.log(this.currentBoard.enPassant)
       }
     }
     else {
@@ -155,7 +156,6 @@ export class BoardComponent {
       blackCanCastleLeftAfterMove: true,
       blackCanCastleRightAfterMove: true,
     });
-
     this.boardService.updateCastlingRights(board, board.moveChain[board.moveChain.length - 1]);
 
     if(
@@ -337,15 +337,54 @@ export class BoardComponent {
     currentBoard.highlightedCells.forEach(moveTo => {
       this.boardService.selectPiece(futureBoard, squareNumber);
       this.movePiece(futureBoard, moveTo);
+
       this.pieceNums = Object.keys(futureBoard.pieces);
       for(let i = 0; i < this.pieceNums.length; i++) {
         if(futureBoard.pieces[parseInt(this.pieceNums[i])].color === futureBoard.turnToMove) {
           this.boardService.selectPiece(futureBoard, parseInt(this.pieceNums[i]));
-          futureBoard.highlightedCells.forEach(cell => {
-            if(futureBoard.pieces[cell] && futureBoard.pieces[cell].name === "king" && futureBoard.pieces[cell].color !== futureBoard.turnToMove) {
-              this.kingCanBeCaptured = true;
+          //has the king just castled and passed through check?
+          if(this.futureBoard.moveChain[this.futureBoard.moveChain.length - 1].hasJustCastled) {
+            if(this.futureBoard.turnToMove === "black") {
+              if(this.futureBoard.moveChain[this.futureBoard.moveChain.length - 1].newPieceNumber === 7) {
+                for(let i = Math.min(futureBoard.initialKingColumn, 7); i <= Math.max(futureBoard.initialKingColumn, 7); i++) {
+                  if(futureBoard.highlightedCells.has(i)) {
+                    this.kingCanBeCaptured = true;
+                    break;
+                  }
+                }
+              } else {
+                for(let i = Math.min(futureBoard.initialKingColumn, 3); i <= Math.max(futureBoard.initialKingColumn, 3); i++) {
+                  if(futureBoard.highlightedCells.has(i)) {
+                    this.kingCanBeCaptured = true;
+                    break;
+                  }
+                }
+              }
+            } else {
+              if(this.futureBoard.moveChain[this.futureBoard.moveChain.length - 1].newPieceNumber === 63) {
+                for(let i = Math.min(futureBoard.initialKingColumn, 7); i <= Math.max(futureBoard.initialKingColumn, 7); i++) {
+                  if(futureBoard.highlightedCells.has(56 + i)) {
+                    this.kingCanBeCaptured = true;
+                    break;
+                  }
+                }
+              } else {
+                for(let i = Math.min(futureBoard.initialKingColumn, 3); i <= Math.max(futureBoard.initialKingColumn, 3); i++) {
+                  if(futureBoard.highlightedCells.has(56 + i)) {
+                    this.kingCanBeCaptured = true;
+                    break;
+                  }
+                }
+              }
             }
-          });
+          }
+          if(!this.kingCanBeCaptured) {
+            futureBoard.highlightedCells.forEach(cell => {
+              if(futureBoard.pieces[cell] && futureBoard.pieces[cell].name === "king" && futureBoard.pieces[cell].color !== futureBoard.turnToMove) {
+                this.kingCanBeCaptured = true;
+              }
+            });
+          }
         }
         if(this.kingCanBeCaptured) {
           break;
