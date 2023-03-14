@@ -131,8 +131,6 @@ export class BoardComponent {
       } else {
         this.selectAndTrim(this.currentBoard, this.futureBoard, squareNumber);
         this.currentBoard.highlightPieceOnBoard = true;
-        console.log(this.currentBoard.highlightedCells)
-        console.log(this.currentBoard.enPassant)
       }
     }
     else {
